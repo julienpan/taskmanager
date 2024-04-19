@@ -1,5 +1,5 @@
+import { useState, useEffect } from "react";
 import { Button, Col, Container, Row, Table } from "react-bootstrap";
-
 
 enum DataStatus {
     PENDING = "En attente",
@@ -15,8 +15,16 @@ interface Data {
 }
 
 export default function Home() {
+    const [datas, setDatas] = useState<Data[]>([]);
 
-    let datas: Data[] = [];
+    useEffect(() => {
+        fetch('http://localhost:8080/getData')
+            .then(response => response.json())
+            .then(data => {
+                setDatas(data); 
+            })
+            .catch(error => console.error('Erreur lors de la récupération des données:', error));
+    }, []);
 
     return (
         <Container fluid>
@@ -34,7 +42,7 @@ export default function Home() {
                         </thead>
                         <tbody>
                             {datas.map(element => (
-                                <tr>
+                                <tr key={element.title}>
                                     <td>{element.title}</td>
                                     <td>{element.creationDate}</td>
                                     <td>{element.dueDate}</td>

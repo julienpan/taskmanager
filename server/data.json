@@ -1,0 +1,30 @@
+[
+    {
+        "title": "Tâche 1",
+        "creationDate": "2024-04-19T08:00:00Z",
+        "dueDate": "2024-04-21T12:00:00Z",
+        "status": "EN_COURS",
+        "validationDate": "2024-04-20T15:30:00Z"
+    },
+    {
+        "title": "Réunion hebdomadaire",
+        "creationDate": "2024-04-18T10:00:00Z",
+        "dueDate": "2024-04-18T12:00:00Z",
+        "status": "TERMINEE",
+        "validationDate": "2024-04-18T12:30:00Z"
+    },
+    {
+        "title": "Projet de développement",
+        "creationDate": "2024-04-15T09:00:00Z",
+        "dueDate": "2024-04-30T18:00:00Z",
+        "status": "PLANIFIEE",
+        "validationDate": ""
+    },
+    {
+        "title": "Préparation de la présentation",
+        "creationDate": "2024-04-17T14:00:00Z",
+        "dueDate": "2024-04-24T12:00:00Z",
+        "status": "EN_ATTENTE",
+        "validationDate": ""
+    }
+]

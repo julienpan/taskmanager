@@ -1,0 +1,26 @@
+# Ignore les fichiers de dépendances installées avec npm ou yarn
+/node_modules
+
+# Ignore les fichiers de dépendances installées avec npm (si vous utilisez npm)
+npm-debug.log
+yarn-error.log
+
+# Ignore les fichiers de configuration locaux
+.env
+
+# Ignore les fichiers de build ou de compilation
+/build
+/dist
+
+# Ignore les fichiers de logs
+*.log
+
+# Ignore les fichiers temporaires
+*.tmp
+
+# Ignore les fichiers d'archives
+*.zip
+*.tar.gz
+
+# Ignore les fichiers cachés
+.DS_Store
