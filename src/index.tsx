@@ -5,7 +5,6 @@ import App from './App';
 import reportWebVitals from './reportWebVitals';
 import { RouterProvider, createBrowserRouter } from 'react-router-dom';
 import Home from './pages/Home';
-import Creator from './pages/Creator';
 
 
 const router = createBrowserRouter([
@@ -17,10 +16,6 @@ const router = createBrowserRouter([
     path: "home",
     element: <Home/>
   },
-  {
-    path: "creator",
-    element: <Creator />
-  }
 ]);
 
 const root = ReactDOM.createRoot(

@@ -1,35 +1,241 @@
-import { useState, useEffect } from "react";
-import { Button, Col, Container, Row, Table } from "react-bootstrap";
+import { useState, useEffect, MouseEventHandler, useRef } from "react";
+import { Button, Col, Container, Form, InputGroup, Modal, Pagination, Row, Table } from "react-bootstrap";
+import './Home.css';
+import Notif, { NotifRef } from '../components/Notif';
+
+import DatePicker, { registerLocale } from "react-datepicker";
+import "react-datepicker/dist/react-datepicker.css";
+import { fr } from 'date-fns/locale/fr';
+import axios from "axios";
+import { format } from "date-fns";
+registerLocale('fr', fr)
+
 
 enum DataStatus {
-    PENDING = "En attente",
-    VALIDATED = "Validé",
+    PENDING = "PENDING",
+    VALIDATED = "VALIDATED",
 }
 
 interface Data {
+    id?: number;
     title: string;
-    creationDate: string;
-    dueDate: string;
-    status: DataStatus,
-    validationDate: string,
+    creation_date: string;
+    due_date: string;
+    status: DataStatus;
+    validation_date: string;
+    priority: number;
 }
 
-export default function Home() {
+
+const Home: React.FC = () => {
+
+    const notifRef = useRef<NotifRef>(null); // Créer une référence pour le toast
+
+    // Modal create
+    const [show, setShow] = useState(false);
+    const [isCreating, setIsCreating] = useState(false);
+
+    const handleClose = () => {
+        setShow(false);
+    }
+    const handleShow = (element?: any) => {
+        if (element) {
+            setIsCreating(false);
+            // Convertir la date UTC en objet Date
+            const due_date = new Date(element.due_date);
+            // Mettre à jour le formulaire avec les données de l'élément
+            setFormData({
+                ...element,
+                dueDate: due_date,
+            });
+        } else {
+            setIsCreating(true);
+            setFormData({
+                title: "",
+                dueDate: new Date(),
+                status: DataStatus.PENDING,
+                priority: 1,
+            })
+        }
+        setShow(true);
+    }
+
+    // Get data from API
     const [datas, setDatas] = useState<Data[]>([]);
 
+    const [totalDataCount, setTotalDataCount] = useState(0);
+    const [pageSize] = useState(10); // Taille de la page
+    const [currentPage, setCurrentPage] = useState(1); // Page actuelle
+
+    // Fonction pour récupérer les données et le nombre total de données
+    const fetchData = async (pageNumber?: any) => {
+        try {
+            // Récupérer les données
+            let query;
+            if(pageNumber) {
+                query = `http://localhost:8080/data/get?page=${pageNumber}`;
+            } else {
+                query = `http://localhost:8080/data/get`;
+            }
+            const response = await fetch(query);
+            const data = await response.json();
+
+            // Mettre à jour les données
+            console.log(data);
+            setDatas(data.data);
+
+            // Mettre à jour le nombre total de données
+            setTotalDataCount(data.totalDataCount);
+        } catch (error) {
+            console.error('Erreur lors de la récupération des données:', error);
+        }
+    };
+
     useEffect(() => {
-        fetch('http://localhost:8080/getData')
-            .then(response => response.json())
-            .then(data => {
-                setDatas(data); 
-            })
-            .catch(error => console.error('Erreur lors de la récupération des données:', error));
+        fetchData();
     }, []);
 
+
+    // Déterminer si la pagination est nécessaire
+    const isPaginationNeeded = totalDataCount > pageSize;
+    // Calculer le nombre total de pages
+    const totalPages = Math.ceil(totalDataCount / pageSize);
+
+    const handlePageChange = (pageNumber: number) => {
+        setCurrentPage(pageNumber); // Mettre à jour la page actuelle    
+        // Appeler votre fonction fetchData avec la nouvelle page actuelle
+        fetchData(pageNumber);
+    };
+
+    let items = [];
+
+    for (let number = 1; number <= totalPages; number++) {
+        items.push(
+            <Pagination.Item key={number} active={number === currentPage} onClick={() => handlePageChange(number)}>
+                {number}
+            </Pagination.Item>
+        );
+    }
+
+    // FORM
+    const today = new Date();
+
+    const [formData, setFormData]: any = useState({
+        title: "",
+        dueDate: new Date(),
+        status: DataStatus.PENDING,
+        priority: 1,
+    });
+
+    const handleChange = (event: any) => {
+        const { name, value } = event.target;
+        setFormData({
+            ...formData,
+            [name]: value,
+        });
+    };
+
+    const handleDelete = () => {
+        if (!formData.id) {
+            console.error("ID de la tâche manquant dans formData");
+            return;
+        }
+
+        axios.delete(`http://localhost:8080/data/delete/${formData.id}`, formData.id).then(response => {
+            console.log('Tâche supprimée avec succès: ', response.data);
+            fetchData();
+            handleClose();
+            if (notifRef.current) {
+                notifRef.current.openToast("Tâche supprimée avec succès");
+            }
+        }).catch(error => {
+            console.error('Erreur lors de la suppression de la tâche:', error);
+            handleClose();
+        })
+    }
+
+    const handleSubmit = (event: any) => {
+        event.preventDefault();
+        if (isCreating) {
+            axios.post('http://localhost:8080/data/create', formData).then((res) => {
+                if (notifRef.current) {
+                    notifRef.current.openToast("Tâche créee avec succès");
+                }
+                handleClose();
+                fetchData();
+            }).catch(error => {
+                console.log('Error:', error);
+                if (notifRef.current) {
+                    notifRef.current.openToast("Impossible de crée la tâche");
+                }
+            })
+        } else {
+
+            if (!formData.id) {
+                console.error("ID de la tâche manquant dans formData");
+                return;
+            }
+
+            axios.put(`http://localhost:8080/data/modify/${formData.id}`, formData).then(response => {
+                console.log('Tâche mise à jour avec succès: ', response.data);
+                if (notifRef.current) {
+                    notifRef.current.openToast("Tâche mise à jour avec succès");
+                }
+                handleClose();
+                fetchData();
+            }).catch(error => {
+                console.error('Erreur lors de la mise à jour de la tâche:', error);
+                if (notifRef.current) {
+                    notifRef.current.openToast("Erreur lors de la mise à jour de la tâche");
+                }
+                handleClose();
+            })
+        }
+    };
+
+    const [searchItem, setSearchItem] = useState("");
+    const handleSearch = (value: string) => {
+        if (value.length > 0) {
+
+            axios.post(`http://localhost:8080/data/search/${value.toLowerCase()}`, { value: searchItem.toLowerCase() }).then(response => {
+                console.log(response.data);
+                setDatas(response.data);
+            }).catch(error => {
+                console.error('Erreur lors de la recherche:', error);
+            });
+        } else {
+            fetchData(); // Recharger toutes les données lorsque le champ de recherche est vide
+        }
+    }
+
+    const handlePagination = (event: any) => {
+        console.log(event);
+    }
+
     return (
-        <Container fluid>
-            <Row>
-                <Col>
+        <Container fluid className="pl-5 pr-5 lg:pl-28 lg:pr-28">
+            <Notif ref={notifRef} />
+            <Row className="text-center mt-5 mb-5">
+                <div className="text-xl">Liste des tâches</div>
+            </Row>
+            <Row className="mt-5 mb-5 text-center">
+                <InputGroup>
+                    <Form.Text className="flex items-center mr-5">Recherche par titre</Form.Text>
+                    <Form.Control
+                        className="max-w-[300px]"
+                        placeholder="Titre"
+                        aria-label="Titre"
+                        value={searchItem}
+                        onChange={(e) => {
+                            const value = e.target.value;
+                            setSearchItem(value);
+                            handleSearch(value);
+                        }}
+                    />
+                </InputGroup>
+            </Row>
+            <Row className="flex justify-center">
+                <Col sm="10">
                     <Table striped bordered hover>
                         <thead>
                             <tr>
@@ -38,16 +244,18 @@ export default function Home() {
                                 <th>Date d'échéance</th>
                                 <th>Statut</th>
                                 <th>Date de validation</th>
+                                <th>Priorité</th>
                             </tr>
                         </thead>
                         <tbody>
                             {datas.map(element => (
-                                <tr key={element.title}>
+                                <tr key={element.id} onClick={() => handleShow(element)} className={element.status == "VALIDATED" ? "bg-custom" : ""}>
                                     <td>{element.title}</td>
-                                    <td>{element.creationDate}</td>
-                                    <td>{element.dueDate}</td>
+                                    <td>{format(new Date(element.creation_date), 'dd/MM/yyyy HH:mm')}</td>
+                                    <td>{format(new Date(element.due_date), 'dd/MM/yyyy HH:mm')}</td>
                                     <td>{element.status}</td>
-                                    <td>{element.validationDate}</td>
+                                    <td>{element.validation_date ? format(new Date(element.validation_date), 'dd/MM/yyyy HH:mm') : ""}</td>
+                                    <td>{element.priority}</td>
                                 </tr>
                             ))}
                         </tbody>
@@ -55,7 +263,86 @@ export default function Home() {
                 </Col>
             </Row>
 
-            <Button className="fixed left-1/2 bottom-[20px] transform -translate-x-1/2 -translate-y-1/2">Créer une tâche</Button>
-        </Container>
+            <Row>
+                <Pagination className="flex justify-center">{items}</Pagination>
+            </Row>
+
+
+            <Button className="fixed left-1/2 bottom-[20px] transform -translate-x-1/2 -translate-y-1/2" onClick={() => handleShow()}>Créer une tâche</Button>
+
+            <Modal show={show} onHide={handleClose}>
+                <Modal.Header closeButton>
+                    <Modal.Title>{isCreating ? "Création d'une tâche" : "Modification d'une tâche"}</Modal.Title>
+                </Modal.Header>
+                <Modal.Body>
+
+                    <Form onSubmit={handleSubmit}>
+                        <Form.Group controlId="title">
+                            <Form.Label>Titre</Form.Label>
+                            <Form.Control
+                                type="text"
+                                placeholder="Titre de la tâche"
+                                name="title"
+                                value={formData.title}
+                                onChange={handleChange}
+                            />
+                        </Form.Group>
+                        <Form.Group controlId="dueDate" className="flex flex-col mt-2 mb-2">
+                            <Form.Label>Date d'échéance</Form.Label>
+                            <DatePicker
+                                selected={formData.dueDate ? new Date(formData.dueDate) : null}
+                                onChange={(date: any) => setFormData({ ...formData, dueDate: date ? date : null })}
+                                minDate={new Date()} // Date minimale (aujourd'hui)
+                                dateFormat="dd/MM/yyyy"
+                                placeholderText="Date de rendu"
+                                className="form-control"
+                                excludeDates={[today]}
+                            />
+
+                        </Form.Group>
+                        <Form.Group controlId="status">
+                            <Form.Label>Statut</Form.Label>
+                            <Form.Control
+                                as="select"
+                                name="status"
+                                value={formData.status}
+                                onChange={handleChange}
+                            >
+                                <option value="PENDING">En attente</option>
+                                <option value="VALIDATED">Validé</option>
+                            </Form.Control>
+                        </Form.Group>
+                        <Form.Group controlId="priority">
+                            <Form.Label>Niveau de priorité</Form.Label>
+                            <Form.Control
+                                type="number"
+                                name="priority"
+                                value={formData.priority}
+                                onChange={handleChange}
+                            />
+                        </Form.Group>
+                        <div className="w-full flex justify-end mt-2">
+                            {!isCreating ? <div>
+                                <Button variant="danger" onClick={handleDelete} className="mr-2">
+                                    Supprimer
+                                </Button>
+                            </div> : ""}
+                            <div>
+                                <Button variant="primary" type="submit">
+                                    {isCreating ? "Créer" : "Modifier"}
+                                </Button>
+                            </div>
+                        </div>
+                    </Form>
+                </Modal.Body>
+                <Modal.Footer>
+                    <Button variant="secondary" onClick={handleClose}>
+                        Fermer
+                    </Button>
+                </Modal.Footer>
+            </Modal>
+        </Container >
     )
 }
+
+export default Home;
