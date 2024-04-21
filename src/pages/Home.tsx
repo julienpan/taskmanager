@@ -8,6 +8,8 @@ import "react-datepicker/dist/react-datepicker.css";
 import { fr } from 'date-fns/locale/fr';
 import axios from "axios";
 import { format } from "date-fns";
+import Header from "../components/Header";
+import { useNavigate } from "react-router-dom";
 registerLocale('fr', fr)
 
 
@@ -29,6 +31,8 @@ interface Data {
 
 const Home: React.FC = () => {
 
+    const navigate = useNavigate();
+    
     const notifRef = useRef<NotifRef>(null); // Créer une référence pour le toast
 
     // Modal create
@@ -72,7 +76,7 @@ const Home: React.FC = () => {
         try {
             // Récupérer les données
             let query;
-            if(pageNumber) {
+            if (pageNumber) {
                 query = `http://localhost:8080/data/get?page=${pageNumber}`;
             } else {
                 query = `http://localhost:8080/data/get`;
@@ -208,140 +212,145 @@ const Home: React.FC = () => {
         }
     }
 
-    const handlePagination = (event: any) => {
-        console.log(event);
+    const handleLogout = async () => {
+        await localStorage.removeItem('accessToken');
+
+        navigate('/login');
     }
 
     return (
-        <Container fluid className="pl-5 pr-5 lg:pl-28 lg:pr-28">
-            <Notif ref={notifRef} />
-            <Row className="text-center mt-5 mb-5">
-                <div className="text-xl">Liste des tâches</div>
-            </Row>
-            <Row className="mt-5 mb-5 text-center">
-                <InputGroup>
-                    <Form.Text className="flex items-center mr-5">Recherche par titre</Form.Text>
-                    <Form.Control
-                        className="max-w-[300px]"
-                        placeholder="Titre"
-                        aria-label="Titre"
-                        value={searchItem}
-                        onChange={(e) => {
-                            const value = e.target.value;
-                            setSearchItem(value);
-                            handleSearch(value);
-                        }}
-                    />
-                </InputGroup>
-            </Row>
-            <Row className="flex justify-center">
-                <Col sm="10">
-                    <Table striped bordered hover>
-                        <thead>
-                            <tr>
-                                <th>Titre</th>
-                                <th>Date de création</th>
-                                <th>Date d'échéance</th>
-                                <th>Statut</th>
-                                <th>Date de validation</th>
-                                <th>Priorité</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {datas.map(element => (
-                                <tr key={element.id} onClick={() => handleShow(element)} className={element.status == "VALIDATED" ? "bg-custom" : ""}>
-                                    <td>{element.title}</td>
-                                    <td>{format(new Date(element.creation_date), 'dd/MM/yyyy HH:mm')}</td>
-                                    <td>{format(new Date(element.due_date), 'dd/MM/yyyy HH:mm')}</td>
-                                    <td>{element.status}</td>
-                                    <td>{element.validation_date ? format(new Date(element.validation_date), 'dd/MM/yyyy HH:mm') : ""}</td>
-                                    <td>{element.priority}</td>
+        <>
+            <Header onLogout={handleLogout} />
+            <Container fluid className="pl-5 pr-5 lg:pl-28 lg:pr-28">
+                <Notif ref={notifRef} />
+                <Row className="text-center mt-5 mb-5">
+                    <div className="text-xl">Liste des tâches</div>
+                </Row>
+                <Row className="mt-5 mb-5 text-center">
+                    <InputGroup>
+                        <Form.Text className="flex items-center mr-5">Recherche par titre</Form.Text>
+                        <Form.Control
+                            className="max-w-[300px]"
+                            placeholder="Titre"
+                            aria-label="Titre"
+                            value={searchItem}
+                            onChange={(e) => {
+                                const value = e.target.value;
+                                setSearchItem(value);
+                                handleSearch(value);
+                            }}
+                        />
+                    </InputGroup>
+                </Row>
+                <Row className="flex justify-center">
+                    <Col sm="10">
+                        <Table striped bordered hover>
+                            <thead>
+                                <tr>
+                                    <th>Titre</th>
+                                    <th>Date de création</th>
+                                    <th>Date d'échéance</th>
+                                    <th>Statut</th>
+                                    <th>Date de validation</th>
+                                    <th>Priorité</th>
                                 </tr>
-                            ))}
-                        </tbody>
-                    </Table>
-                </Col>
-            </Row>
+                            </thead>
+                            <tbody>
+                                {datas.map(element => (
+                                    <tr key={element.id} onClick={() => handleShow(element)} className={element.status == "VALIDATED" ? "bg-custom" : ""}>
+                                        <td>{element.title}</td>
+                                        <td>{format(new Date(element.creation_date), 'dd/MM/yyyy HH:mm')}</td>
+                                        <td>{format(new Date(element.due_date), 'dd/MM/yyyy HH:mm')}</td>
+                                        <td>{element.status}</td>
+                                        <td>{element.validation_date ? format(new Date(element.validation_date), 'dd/MM/yyyy HH:mm') : ""}</td>
+                                        <td>{element.priority}</td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </Table>
+                    </Col>
+                </Row>
 
-            <Row>
-                <Pagination className="flex justify-center">{items}</Pagination>
-            </Row>
+                <Row>
+                    <Pagination className="flex justify-center">{items}</Pagination>
+                </Row>
 
 
-            <Button className="fixed left-1/2 bottom-[20px] transform -translate-x-1/2 -translate-y-1/2" onClick={() => handleShow()}>Créer une tâche</Button>
+                <Button className="fixed left-1/2 bottom-0 transform -translate-x-1/2 -translate-y-1/2" onClick={() => handleShow()}>Créer une tâche</Button>
 
-            <Modal show={show} onHide={handleClose}>
-                <Modal.Header closeButton>
-                    <Modal.Title>{isCreating ? "Création d'une tâche" : "Modification d'une tâche"}</Modal.Title>
-                </Modal.Header>
-                <Modal.Body>
+                <Modal show={show} onHide={handleClose}>
+                    <Modal.Header closeButton>
+                        <Modal.Title>{isCreating ? "Création d'une tâche" : "Modification d'une tâche"}</Modal.Title>
+                    </Modal.Header>
+                    <Modal.Body>
 
-                    <Form onSubmit={handleSubmit}>
-                        <Form.Group controlId="title">
-                            <Form.Label>Titre</Form.Label>
-                            <Form.Control
-                                type="text"
-                                placeholder="Titre de la tâche"
-                                name="title"
-                                value={formData.title}
-                                onChange={handleChange}
-                            />
-                        </Form.Group>
-                        <Form.Group controlId="dueDate" className="flex flex-col mt-2 mb-2">
-                            <Form.Label>Date d'échéance</Form.Label>
-                            <DatePicker
-                                selected={formData.dueDate ? new Date(formData.dueDate) : null}
-                                onChange={(date: any) => setFormData({ ...formData, dueDate: date ? date : null })}
-                                minDate={new Date()} // Date minimale (aujourd'hui)
-                                dateFormat="dd/MM/yyyy"
-                                placeholderText="Date de rendu"
-                                className="form-control"
-                                excludeDates={[today]}
-                            />
+                        <Form onSubmit={handleSubmit}>
+                            <Form.Group controlId="title">
+                                <Form.Label>Titre</Form.Label>
+                                <Form.Control
+                                    type="text"
+                                    placeholder="Titre de la tâche"
+                                    name="title"
+                                    value={formData.title}
+                                    onChange={handleChange}
+                                />
+                            </Form.Group>
+                            <Form.Group controlId="dueDate" className="flex flex-col mt-2 mb-2">
+                                <Form.Label>Date d'échéance</Form.Label>
+                                <DatePicker
+                                    selected={formData.dueDate ? new Date(formData.dueDate) : null}
+                                    onChange={(date: any) => setFormData({ ...formData, dueDate: date ? date : null })}
+                                    minDate={new Date()} // Date minimale (aujourd'hui)
+                                    dateFormat="dd/MM/yyyy"
+                                    placeholderText="Date de rendu"
+                                    className="form-control"
+                                    excludeDates={[today]}
+                                />
 
-                        </Form.Group>
-                        <Form.Group controlId="status">
-                            <Form.Label>Statut</Form.Label>
-                            <Form.Control
-                                as="select"
-                                name="status"
-                                value={formData.status}
-                                onChange={handleChange}
-                            >
-                                <option value="PENDING">En attente</option>
-                                <option value="VALIDATED">Validé</option>
-                            </Form.Control>
-                        </Form.Group>
-                        <Form.Group controlId="priority">
-                            <Form.Label>Niveau de priorité</Form.Label>
-                            <Form.Control
-                                type="number"
-                                name="priority"
-                                value={formData.priority}
-                                onChange={handleChange}
-                            />
-                        </Form.Group>
-                        <div className="w-full flex justify-end mt-2">
-                            {!isCreating ? <div>
-                                <Button variant="danger" onClick={handleDelete} className="mr-2">
-                                    Supprimer
-                                </Button>
-                            </div> : ""}
-                            <div>
-                                <Button variant="primary" type="submit">
-                                    {isCreating ? "Créer" : "Modifier"}
-                                </Button>
+                            </Form.Group>
+                            <Form.Group controlId="status">
+                                <Form.Label>Statut</Form.Label>
+                                <Form.Control
+                                    as="select"
+                                    name="status"
+                                    value={formData.status}
+                                    onChange={handleChange}
+                                >
+                                    <option value="PENDING">En attente</option>
+                                    <option value="VALIDATED">Validé</option>
+                                </Form.Control>
+                            </Form.Group>
+                            <Form.Group controlId="priority">
+                                <Form.Label>Niveau de priorité</Form.Label>
+                                <Form.Control
+                                    type="number"
+                                    name="priority"
+                                    value={formData.priority}
+                                    onChange={handleChange}
+                                />
+                            </Form.Group>
+                            <div className="w-full flex justify-end mt-2">
+                                {!isCreating ? <div>
+                                    <Button variant="danger" onClick={handleDelete} className="mr-2">
+                                        Supprimer
+                                    </Button>
+                                </div> : ""}
+                                <div>
+                                    <Button variant="primary" type="submit">
+                                        {isCreating ? "Créer" : "Modifier"}
+                                    </Button>
+                                </div>
                             </div>
-                        </div>
-                    </Form>
-                </Modal.Body>
-                <Modal.Footer>
-                    <Button variant="secondary" onClick={handleClose}>
-                        Fermer
-                    </Button>
-                </Modal.Footer>
-            </Modal>
-        </Container >
+                        </Form>
+                    </Modal.Body>
+                    <Modal.Footer>
+                        <Button variant="secondary" onClick={handleClose}>
+                            Fermer
+                        </Button>
+                    </Modal.Footer>
+                </Modal>
+            </Container >
+        </>
     )
 }
 

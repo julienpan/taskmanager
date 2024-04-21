@@ -2,6 +2,7 @@ const express = require('express');
 const cors = require('cors');
 const bodyParser = require('body-parser');
 const dataRouter = require('./routes/data');
+const loginRouter = require('./routes/login');
 
 const PORT = process.env.PORT || 8080;
 const app = express();
@@ -12,6 +13,7 @@ app.use(bodyParser.json()); // Analyse le corps des requêtes au format JSON
 
 // Routes
 app.use('/data', dataRouter); // Utilisation du routeur pour les endpoints API
+app.use('/login', loginRouter);
 
 // Gestion des erreurs 404 (route non trouvée)
 app.use((req, res, next) => {
