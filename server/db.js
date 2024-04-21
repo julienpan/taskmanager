@@ -13,7 +13,9 @@ const createTableTasks = `
         due_date TIMESTAMP,
         status VARCHAR(20),
         validation_date TIMESTAMP,
-        priority INTEGER
+        priority INTEGER,
+        user_id INTEGER,
+        FOREIGN KEY (user_id) REFERENCES users(id)
     )
 `;
 

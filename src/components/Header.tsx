@@ -1,7 +1,11 @@
 import React from 'react';
 import { Navbar, Nav, Button } from 'react-bootstrap';
 
-const Header = ({ onLogout }: any) => {
+interface HeaderProps {
+    onLogout: () => void; // Définissez le type de la fonction onLogout
+}
+
+const Header: React.FC<HeaderProps> = ({ onLogout }) => { // Utilisez React.FC pour définir les props et leur type
     return (
         <Navbar bg="dark" variant="dark" expand="lg" className="p-3">
             <Navbar.Brand href="/home">Task Manager</Navbar.Brand>

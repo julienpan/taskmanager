@@ -3,10 +3,11 @@ import { Button, Col, Container, Form, InputGroup, Modal, Pagination, Row, Table
 import './Home.css';
 import Notif, { NotifRef } from '../components/Notif';
 
+import axiosService from "../services/axios.service";
+
 import DatePicker, { registerLocale } from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
 import { fr } from 'date-fns/locale/fr';
-import axios from "axios";
 import { format } from "date-fns";
 import Header from "../components/Header";
 import { useNavigate } from "react-router-dom";
@@ -20,19 +21,20 @@ enum DataStatus {
 
 interface Data {
     id?: number;
-    title: string;
+    title?: string;
     creation_date: string;
     due_date: string;
-    status: DataStatus;
+    status?: DataStatus;
     validation_date: string;
-    priority: number;
+    priority?: number;
+    user_id?: number;
 }
 
 
 const Home: React.FC = () => {
 
     const navigate = useNavigate();
-    
+
     const notifRef = useRef<NotifRef>(null); // Créer une référence pour le toast
 
     // Modal create
@@ -77,19 +79,22 @@ const Home: React.FC = () => {
             // Récupérer les données
             let query;
             if (pageNumber) {
-                query = `http://localhost:8080/data/get?page=${pageNumber}`;
+                query = `/data/get?page=${pageNumber}`;
             } else {
-                query = `http://localhost:8080/data/get`;
+                query = `/data/get`;
             }
-            const response = await fetch(query);
-            const data = await response.json();
 
-            // Mettre à jour les données
-            console.log(data);
-            setDatas(data.data);
+            let data: any;
 
-            // Mettre à jour le nombre total de données
-            setTotalDataCount(data.totalDataCount);
+            await axiosService.get(query).then(response => {
+                data = response.data;
+                console.log(data);
+            });
+
+            if (data) {
+                setDatas(data.data);
+                setTotalDataCount(data.totalDataCount);
+            }
         } catch (error) {
             console.error('Erreur lors de la récupération des données:', error);
         }
@@ -145,7 +150,7 @@ const Home: React.FC = () => {
             return;
         }
 
-        axios.delete(`http://localhost:8080/data/delete/${formData.id}`, formData.id).then(response => {
+        axiosService.delete(`/data/delete/${formData.id}`, formData.id).then(response => {
             console.log('Tâche supprimée avec succès: ', response.data);
             fetchData();
             handleClose();
@@ -161,7 +166,7 @@ const Home: React.FC = () => {
     const handleSubmit = (event: any) => {
         event.preventDefault();
         if (isCreating) {
-            axios.post('http://localhost:8080/data/create', formData).then((res) => {
+            axiosService.post('/data/create', formData).then((res) => {
                 if (notifRef.current) {
                     notifRef.current.openToast("Tâche créee avec succès");
                 }
@@ -180,7 +185,7 @@ const Home: React.FC = () => {
                 return;
             }
 
-            axios.put(`http://localhost:8080/data/modify/${formData.id}`, formData).then(response => {
+            axiosService.put(`/data/modify/${formData.id}`, formData).then(response => {
                 console.log('Tâche mise à jour avec succès: ', response.data);
                 if (notifRef.current) {
                     notifRef.current.openToast("Tâche mise à jour avec succès");
@@ -201,7 +206,7 @@ const Home: React.FC = () => {
     const handleSearch = (value: string) => {
         if (value.length > 0) {
 
-            axios.post(`http://localhost:8080/data/search/${value.toLowerCase()}`, { value: searchItem.toLowerCase() }).then(response => {
+            axiosService.post(`/data/search/${value.toLowerCase()}`, { value: searchItem.toLowerCase() }).then(response => {
                 console.log(response.data);
                 setDatas(response.data);
             }).catch(error => {
@@ -253,6 +258,7 @@ const Home: React.FC = () => {
                                     <th>Statut</th>
                                     <th>Date de validation</th>
                                     <th>Priorité</th>
+                                    <th>Crée par</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -264,6 +270,7 @@ const Home: React.FC = () => {
                                         <td>{element.status}</td>
                                         <td>{element.validation_date ? format(new Date(element.validation_date), 'dd/MM/yyyy HH:mm') : ""}</td>
                                         <td>{element.priority}</td>
+                                        <td>{element.user_id}</td>
                                     </tr>
                                 ))}
                             </tbody>

@@ -1,26 +1,57 @@
 const express = require('express');
 const dataRouter = express.Router();
 const db = require('../db');
+const jwt = require('jsonwebtoken');
+
+
+// Middleware d'authentification
+const authenticateUser = (req, res, next) => {
+    const token = req.headers.authorization;
+
+    if (!token) {
+        return res.status(401).json({ error: 'Token d\'authentification manquant' });
+    }
+
+    // Extraire le token du format "Bearer <token>"
+    const tokenParts = token.split(' ');
+    if (tokenParts.length !== 2 || tokenParts[0] !== 'Bearer') {
+        return res.status(400).json({ error: 'Format de token invalide' });
+    }
+    const authToken = tokenParts[1];
+
+    // Vérifier le token JWT
+    jwt.verify(authToken, process.env.TOKEN_SECRET, (err, decoded) => {
+        if (err) {
+            return res.status(403).json({ error: 'Token invalide' });
+        }
+
+        // Stocker les informations de l'utilisateur dans l'objet de requête
+        req.user = decoded;
+        next();
+    });
+};
+
+// Appliquer le middleware d'authentification à toutes les routes sauf la page d'accueil
+dataRouter.use(authenticateUser);
 
 // Endpoint pour la page d'accueil
 dataRouter.get('/', (req, res) => {
     res.send('Bienvenue sur la page d\'accueil !');
 });
 
-dataRouter.get('/get', async (req, res) => {
+dataRouter.get('/get', authenticateUser, async (req, res) => {
     const page = req.query.page || 1; // Numéro de la page, par défaut 1
     const pageSize = req.query.pageSize || 10; // Taille de la page, par défaut 10
 
     const offset = (page - 1) * pageSize; // Calculer l'offset pour la requête SQL
 
     try {
-        const result = await db.query('SELECT * FROM tasks ORDER BY priority ASC LIMIT $1 OFFSET $2', [pageSize, offset]);
+        const result = await db.query('SELECT * FROM tasks ORDER BY priority ASC, status ASC LIMIT $1 OFFSET $2', [pageSize, offset]);
         const maxResult = await db.query('SELECT COUNT(*) FROM tasks');
-
         const size = maxResult.rows[0].count;
         res.json({
             data: result.rows,
-            totalDataCount: size     
+            totalDataCount: size
         });
     } catch (error) {
         console.error('Erreur lors de la récupération des données:', error);
@@ -30,22 +61,39 @@ dataRouter.get('/get', async (req, res) => {
 
 
 // Endpoint pour créer une nouvelle tâche
-dataRouter.post('/create', async (req, res) => {
+dataRouter.post('/create', authenticateUser, async (req, res) => {
     try {
         // Récupérer les données envoyées depuis le front-end
         const { title, dueDate, status, priority } = req.body;
+    
+        const username = req.user.username;
 
         // Vérifier si les champs requis sont vides
         if (!title || !dueDate || !status || !priority) {
             return res.status(400).json({ error: 'Veuillez fournir tous les champs requis.' }); // Code 400 pour indiquer une mauvaise requête
         }
 
+        // Récupérer l'ID de l'utilisateur à partir du nom d'utilisateur
+        const userResult = await db.query('SELECT id FROM users WHERE username = $1', [username]);
+        if (userResult.rows.length === 0) {
+            return res.status(404).json({ error: 'Utilisateur non trouvé.' });
+        }
+        const userId = userResult.rows[0].id;
+
         const creationDate = new Date();
+
+        await db.query('BEGIN');
         // Insérer les données dans la base de données
-        const result = await db.query('INSERT INTO tasks (title, creation_date, due_date, status, priority) VALUES ($1, $2, $3, $4, $5) RETURNING *', [title, creationDate, dueDate, status, priority]);
+        const result = await db.query('INSERT INTO tasks (title, creation_date, due_date, status, priority, user_id) VALUES ($1, $2, $3, $4, $5, $6) RETURNING *', [title, creationDate, dueDate, status, priority, userId]);
         // Renvoyer les données insérées en tant que réponse
+
+        await db.query('COMMIT');
+
         res.status(201).json(result.rows[0]); // Code 201 pour indiquer que la ressource a été créée avec succès
     } catch (error) {
+
+        await db.query('ROLLBACK');
+
         console.error('Erreur lors de la création de la tâche:', error);
         res.status(500).send('Erreur lors de la création de la tâche');
     }
