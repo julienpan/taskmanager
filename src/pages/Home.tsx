@@ -96,7 +96,7 @@ const Home: React.FC = () => {
                 setTotalDataCount(data.totalDataCount);
             }
         } catch (error) {
-            console.error('Erreur lors de la récupération des données:', error);
+            console.log('Erreur lors de la récupération des données:', error);
         }
     };
 
@@ -146,7 +146,7 @@ const Home: React.FC = () => {
 
     const handleDelete = () => {
         if (!formData.id) {
-            console.error("ID de la tâche manquant dans formData");
+            console.log("ID de la tâche manquant dans formData");
             return;
         }
 
@@ -158,7 +158,7 @@ const Home: React.FC = () => {
                 notifRef.current.openToast("Tâche supprimée avec succès");
             }
         }).catch(error => {
-            console.error('Erreur lors de la suppression de la tâche:', error);
+            console.log('Erreur lors de la suppression de la tâche:', error);
             handleClose();
         })
     }
@@ -181,7 +181,7 @@ const Home: React.FC = () => {
         } else {
 
             if (!formData.id) {
-                console.error("ID de la tâche manquant dans formData");
+                console.log("ID de la tâche manquant dans formData");
                 return;
             }
 
@@ -193,7 +193,7 @@ const Home: React.FC = () => {
                 handleClose();
                 fetchData();
             }).catch(error => {
-                console.error('Erreur lors de la mise à jour de la tâche:', error);
+                console.log('Erreur lors de la mise à jour de la tâche:', error);
                 if (notifRef.current) {
                     notifRef.current.openToast("Erreur lors de la mise à jour de la tâche");
                 }
@@ -210,7 +210,7 @@ const Home: React.FC = () => {
                 console.log(response.data);
                 setDatas(response.data);
             }).catch(error => {
-                console.error('Erreur lors de la recherche:', error);
+                console.log('Erreur lors de la recherche:', error);
             });
         } else {
             fetchData(); // Recharger toutes les données lorsque le champ de recherche est vide
@@ -249,7 +249,7 @@ const Home: React.FC = () => {
                 </Row>
                 <Row className="flex justify-center">
                     <Col sm="10">
-                        <Table striped bordered hover>
+                        <Table striped bordered hover data-testid="custom-table">
                             <thead>
                                 <tr>
                                     <th>Titre</th>

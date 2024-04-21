@@ -20,3 +20,5 @@ const Header: React.FC<HeaderProps> = ({ onLogout }) => { // Utilisez React.FC p
 }
 
 export default Header;
+
+export type { HeaderProps }
