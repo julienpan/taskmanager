@@ -202,20 +202,42 @@ const Home: React.FC = () => {
         }
     };
 
-    const [searchItem, setSearchItem] = useState("");
-    const handleSearch = (value: string) => {
-        if (value.length > 0) {
+    const [searchForm, setSearchForm] = useState<any>({
+        title: "",
+        user_id: 0,
+    });
 
-            axiosService.post(`/data/search/${value.toLowerCase()}`, { value: searchItem.toLowerCase() }).then(response => {
+    const handleSearch = (value: any, type?: string) => {
+        let updatedSearchForm = { ...searchForm }; // Copie de l'état actuel
+        if (type === 'title') {
+            updatedSearchForm.title = value.toLowerCase();
+            setSearchForm({ ...searchForm, title: value });
+        } else if (type === 'id') {
+            updatedSearchForm.user_id = parseInt(value);
+            setSearchForm({ ...searchForm, user_id: value });
+        }
+
+        if(updatedSearchForm.title) {
+            updatedSearchForm.title = updatedSearchForm.title.toLowerCase();
+        }
+        console.log(updatedSearchForm);
+
+        // Utiliser la valeur mise à jour pour déterminer si la recherche doit être effectuée
+        if ((updatedSearchForm.title.trim().length > 0 || (updatedSearchForm.user_id != 0 && !Number.isNaN(updatedSearchForm.user_id)))) {
+            console.log('Search');
+            axiosService.post(`/data/search`, { searchForm: updatedSearchForm }).then(response => {
                 console.log(response.data);
                 setDatas(response.data);
             }).catch(error => {
                 console.log('Erreur lors de la recherche:', error);
             });
         } else {
-            fetchData(); // Recharger toutes les données lorsque le champ de recherche est vide
+            console.log('Fetch');
+            fetchData();
         }
     }
+
+
 
     const handleLogout = async () => {
         await localStorage.removeItem('accessToken');
@@ -232,20 +254,32 @@ const Home: React.FC = () => {
                     <div className="text-xl">Liste des tâches</div>
                 </Row>
                 <Row className="mt-5 mb-5 text-center">
-                    <InputGroup>
-                        <Form.Text className="flex items-center mr-5">Recherche par titre</Form.Text>
-                        <Form.Control
-                            className="max-w-[300px]"
-                            placeholder="Titre"
-                            aria-label="Titre"
-                            value={searchItem}
-                            onChange={(e) => {
-                                const value = e.target.value;
-                                setSearchItem(value);
-                                handleSearch(value);
-                            }}
-                        />
-                    </InputGroup>
+                    <Col>
+                        <InputGroup>
+                            <Form.Text className="flex items-center w-[150px]">Recherche par titre</Form.Text>
+                            <Form.Control
+                                className="max-w-[300px]"
+                                placeholder="Titre"
+                                aria-label="Titre"
+                                value={searchForm.title}
+                                onChange={(e) => {
+                                    const value = e.target.value;
+                                    handleSearch(value, "title");
+                                }}
+                            />
+                        </InputGroup>
+
+                        <InputGroup className="mt-2">
+                            <Form.Text className="flex items-center w-[150px]">Identifiant</Form.Text>
+                            <Form.Control className="max-w-[300px]" min="0" type="number" placeholder="id" aria-label="id" value={searchForm.user_id} onChange={(e) => {
+                                if (e) {
+                                    console.log(e.target.value);
+                                    const value = e.target.value;
+                                    handleSearch(value, "id");
+                                }
+                            }} />
+                        </InputGroup>
+                    </Col>
                 </Row>
                 <Row className="flex justify-center">
                     <Col sm="10">

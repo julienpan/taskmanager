@@ -65,7 +65,7 @@ dataRouter.post('/create', authenticateUser, async (req, res) => {
     try {
         // Récupérer les données envoyées depuis le front-end
         const { title, dueDate, status, priority } = req.body;
-    
+
         const username = req.user.username;
 
         // Vérifier si les champs requis sont vides
@@ -154,6 +154,47 @@ dataRouter.post('/search/:value', async (req, res) => {
     const value = req.params.value;
     try {
         const result = await db.query("SELECT * FROM tasks WHERE LOWER(title) LIKE $1", [`%${value}%`]);
+        res.json(result.rows);
+    } catch (error) {
+        console.error("Erreur lors de la recherche des tâches", error);
+        res.status(500).json({ error: "Erreur lors de la recherche des tâches" });
+    }
+});
+
+dataRouter.post('/search', async (req, res) => {
+    const searchForm = req.body.searchForm;
+
+    console.log(searchForm);
+    try {
+        let query = "SELECT * FROM tasks WHERE 1=1"; // Commencez par une condition toujours vraie
+
+        const params = []; // Tableau pour stocker les paramètres pour la requête préparée
+
+        // Ajoutez la condition pour title si elle est fournie
+        if (searchForm.title) {
+            console.log('title')
+            query += " AND LOWER(title) LIKE $1";
+            params.push(`%${searchForm.title}%`);
+        }
+        
+        // Ajoutez la condition pour user_id si elle est fournie
+        if (searchForm.user_id && searchForm.user_id != 0) {
+            console.log('user_id')
+            // Si title est fourni, utilisez $2 pour user_id, sinon utilisez $1
+            const user_id_param_index = searchForm.title ? 2 : 1;
+            query += ` AND user_id = $${user_id_param_index}`;
+            params.push(searchForm.user_id);
+        }
+        
+        // Supprimez la condition WHERE si ni title ni user_id ne sont fournis
+        if (!searchForm.title && !searchForm.user_id) {
+            query = "SELECT * FROM tasks";
+        }
+
+        console.log(`${query} ${params}`);
+
+        const result = await db.query(query, params);
+
         res.json(result.rows);
     } catch (error) {
         console.error("Erreur lors de la recherche des tâches", error);
