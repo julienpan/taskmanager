@@ -1,35 +1,8 @@
 const express = require('express');
 const dataRouter = express.Router();
 const db = require('../db');
-const jwt = require('jsonwebtoken');
+const { authenticateUser } = require('../services/auth.service');
 
-
-// Middleware d'authentification
-const authenticateUser = (req, res, next) => {
-    const token = req.headers.authorization;
-
-    if (!token) {
-        return res.status(401).json({ error: 'Token d\'authentification manquant' });
-    }
-
-    // Extraire le token du format "Bearer <token>"
-    const tokenParts = token.split(' ');
-    if (tokenParts.length !== 2 || tokenParts[0] !== 'Bearer') {
-        return res.status(400).json({ error: 'Format de token invalide' });
-    }
-    const authToken = tokenParts[1];
-
-    // Vérifier le token JWT
-    jwt.verify(authToken, process.env.TOKEN_SECRET, (err, decoded) => {
-        if (err) {
-            return res.status(403).json({ error: 'Token invalide' });
-        }
-
-        // Stocker les informations de l'utilisateur dans l'objet de requête
-        req.user = decoded;
-        next();
-    });
-};
 
 // Appliquer le middleware d'authentification à toutes les routes sauf la page d'accueil
 dataRouter.use(authenticateUser);
@@ -46,7 +19,7 @@ dataRouter.get('/get', authenticateUser, async (req, res) => {
     const offset = (page - 1) * pageSize; // Calculer l'offset pour la requête SQL
 
     try {
-        const result = await db.query('SELECT * FROM tasks ORDER BY priority ASC, status ASC LIMIT $1 OFFSET $2', [pageSize, offset]);
+        const result = await db.query('SELECT * FROM tasks ORDER BY priority ASC, status ASC, due_date ASC LIMIT $1 OFFSET $2', [pageSize, offset]);
         const maxResult = await db.query('SELECT COUNT(*) FROM tasks');
         const size = maxResult.rows[0].count;
         res.json({
@@ -176,7 +149,7 @@ dataRouter.post('/search', async (req, res) => {
             query += " AND LOWER(title) LIKE $1";
             params.push(`%${searchForm.title}%`);
         }
-        
+
         // Ajoutez la condition pour user_id si elle est fournie
         if (searchForm.user_id && searchForm.user_id != 0) {
             console.log('user_id')
@@ -185,10 +158,11 @@ dataRouter.post('/search', async (req, res) => {
             query += ` AND user_id = $${user_id_param_index}`;
             params.push(searchForm.user_id);
         }
-        
+
         // Supprimez la condition WHERE si ni title ni user_id ne sont fournis
         if (!searchForm.title && !searchForm.user_id) {
-            query = "SELECT * FROM tasks";
+            query = ('SELECT * FROM tasks ORDER BY priority ASC, status ASC, due_date ASC LIMIT $1 OFFSET $2');
+            params.push([pageSize, offset]);
         }
 
         console.log(`${query} ${params}`);

@@ -3,6 +3,9 @@ const jwt = require('jsonwebtoken');
 const bcrypt = require('bcrypt');
 const loginRouter = express.Router();
 const db = require('../db');
+require('dotenv').config();
+
+const stripe = require('stripe')(process.env.STRIPE_KEY);
 
 
 // Endpoint pour vérifier le token
@@ -46,6 +49,8 @@ loginRouter.post('/register', async (req, res) => {
         if (existingUser.rows.length > 0) {
             return res.status(400).json({ error: 'Ce nom d\'utilisateur est déjà pris.' });
         }
+
+        await db.query('BEGIN');
         // Hash du mot de passe
         const saltRounds = 10;
         const hash = await bcrypt.hash(password, saltRounds);
@@ -56,8 +61,22 @@ loginRouter.post('/register', async (req, res) => {
         const user = { username: username };
         const accessToken = jwt.sign(user, process.env.TOKEN_SECRET);
 
+        const customer = await stripe.customers.search({
+            query: `name: \'${username}\'`,
+        });
+
+        if (customer.data.length == 0) {
+            customer = await stripe.customers.create({
+                name: user.username,
+            });
+            console.log(`Création d'un profil stripe`);
+        }
+        await db.query('COMMIT');
         res.json({ accessToken });
+
     } catch (error) {
+        await db.query('ROLLBACK');
+
         console.error(`Erreur lors de l'inscription de l'utilisateur`, error);
         res.status(500).json({ error: 'Erreur lors de l\'inscription de l\'utilisateur' });
     }

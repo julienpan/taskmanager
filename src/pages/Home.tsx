@@ -217,7 +217,7 @@ const Home: React.FC = () => {
             setSearchForm({ ...searchForm, user_id: value });
         }
 
-        if(updatedSearchForm.title) {
+        if (updatedSearchForm.title) {
             updatedSearchForm.title = updatedSearchForm.title.toLowerCase();
         }
         console.log(updatedSearchForm);
@@ -245,13 +245,17 @@ const Home: React.FC = () => {
         navigate('/login');
     }
 
+    const handleSub = () => {
+        navigate('/subs');
+    }
+
     return (
         <>
-            <Header onLogout={handleLogout} />
+            <Header onLogout={handleLogout} onSub={handleSub} />
             <Container fluid className="pl-5 pr-5 lg:pl-28 lg:pr-28">
                 <Notif ref={notifRef} />
-                <Row className="text-center mt-5 mb-5">
-                    <div className="text-xl">Liste des tâches</div>
+                <Row className="text-center mt-5 mb-2">
+                    <div className="text-2xl">Liste des tâches</div>
                 </Row>
                 <Row className="mt-5 mb-5 text-center">
                     <Col>
@@ -279,6 +283,10 @@ const Home: React.FC = () => {
                                 }
                             }} />
                         </InputGroup>
+                    </Col>
+                    <Col>
+
+                        <Button onClick={() => handleShow()}>Créer une tâche</Button>
                     </Col>
                 </Row>
                 <Row className="flex justify-center">
@@ -312,12 +320,9 @@ const Home: React.FC = () => {
                     </Col>
                 </Row>
 
-                <Row>
+                <div className="fixed bottom-5 left-1/2 -translate-x-1/2">
                     <Pagination className="flex justify-center">{items}</Pagination>
-                </Row>
-
-
-                <Button className="fixed left-1/2 bottom-0 transform -translate-x-1/2 -translate-y-1/2" onClick={() => handleShow()}>Créer une tâche</Button>
+                </div>
 
                 <Modal show={show} onHide={handleClose}>
                     <Modal.Header closeButton>
